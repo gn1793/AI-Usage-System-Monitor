@@ -8,7 +8,7 @@ SSH로 연결한 서버의 GPU, CPU, RAM도 확인할 수 있습니다.
 
 ```bash
 git clone https://github.com/gn1793/AI-Usage-System-Monitor.git
-cd AIUsageSystemMonitor
+cd AI-Usage-System-Monitor
 
 ./scripts/build.sh
 ./scripts/install.sh

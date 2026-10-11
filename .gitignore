@@ -1,0 +1,46 @@
+# macOS Finder metadata and AppleDouble files
+.DS_Store
+._*
+__MACOSX/
+
+# Built applications and compiler artifacts
+dist/
+.build/
+DerivedData/
+*.app/
+*.dSYM/
+*.xcarchive/
+.swiftpm/
+
+# Generated IDE projects and per-user Xcode settings
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+*.xcuserstate
+
+# Python caches and local virtual environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Credentials and private machine configuration
+.env
+.env.*
+!.env.example
+.ssh/
+.codex/
+.claude/
+auth.json
+.credentials.json
+*.pem
+*.p8
+*.p12
+*.key
+
+# Local logs and temporary output
+*.log
+*.tmp
+*.bak
+*.backup

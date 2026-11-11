@@ -13,7 +13,10 @@ final class MonitorApplicationDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         status = StatusItemController(prefs: prefs, monitor: monitor, quotas: quotas)
         monitor.setRealtime(prefs.realtime); monitor.setEnergySaving(prefs.energySaving)
-        monitor.reconcile(prefs.hosts); quotas.start()
+        monitor.reconcile(prefs.hosts); quotas.configureCredits(prefs.openAICredits); quotas.start()
+        prefs.$openAICredits.dropFirst().sink { [weak self] configuration in
+            self?.quotas.configureCredits(configuration)
+        }.store(in: &subscriptions)
         prefs.$hosts.dropFirst().sink { [weak self] hosts in self?.monitor.reconcile(hosts) }.store(in: &subscriptions)
         prefs.$energySaving.dropFirst().sink { [weak self] value in self?.monitor.setEnergySaving(value) }.store(in: &subscriptions)
         prefs.$realtime.dropFirst().sink { [weak self] value in self?.monitor.setRealtime(value) }.store(in: &subscriptions)

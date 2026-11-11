@@ -11,13 +11,14 @@ private enum Palette {
 struct GaugeBar: View {
     let percent: Double
     var color = Palette.green
+    var height: CGFloat = 7
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Capsule().fill(Palette.track)
                 Capsule().fill(color).frame(width: geometry.size.width * min(1, max(0, percent.isFinite ? percent / 100 : 0)))
             }
-        }.frame(height: 7).accessibilityHidden(true)
+        }.frame(height: height).accessibilityHidden(true)
     }
 }
 struct MetricBar: View {
@@ -72,7 +73,7 @@ struct Dashboard: View {
                             VStack(spacing: 8) {
                                 Image(systemName: "desktopcomputer").font(.title)
                                 Text("Add an SSH computer in Settings.").foregroundStyle(.secondary)
-                                Button("Open Settings") { SettingsWindowManager.shared.show(prefs: prefs, monitor: monitor) }
+                                Button("Open Settings") { SettingsWindowManager.shared.show(prefs: prefs, monitor: monitor, quotas: quotas) }
                             }.frame(maxWidth: .infinity).padding(24)
                         } else {
                             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .top), count: expandedWindow && geometry.size.width >= 860 ? 2 : 1), alignment: .leading, spacing: 14) {
@@ -83,7 +84,7 @@ struct Dashboard: View {
                 }
             }
             HStack {
-                Button { SettingsWindowManager.shared.show(prefs: prefs, monitor: monitor) } label: { Label("Settings", systemImage: "gearshape") }.buttonStyle(.plain)
+                Button { SettingsWindowManager.shared.show(prefs: prefs, monitor: monitor, quotas: quotas) } label: { Label("Settings", systemImage: "gearshape") }.buttonStyle(.plain)
                 Spacer()
                 Text("AI 5m · SSH \(monitor.effectiveInterval)s").font(.caption).foregroundStyle(.secondary)
                 Button("Quit") { NSApp.terminate(nil) }.buttonStyle(.plain)
@@ -96,64 +97,6 @@ struct Dashboard: View {
     private var statusText: String {
         if monitor.hosts.isEmpty { return "No hosts" }
         return allOnline ? "Live" : "\(monitor.onlineCount)/\(monitor.hosts.count) online"
-    }
-}
-private struct AIUsageCard: View {
-    @EnvironmentObject private var quotas: AIQuotaService
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("AI Usage").font(.headline)
-                Spacer()
-                Text(quotas.isRefreshing ? "Refreshing…" : "Every 5 minutes").font(.caption).foregroundStyle(.secondary)
-                Button { Task { await quotas.refresh() } } label: { Image(systemName: "arrow.clockwise") }
-                    .buttonStyle(.plain).disabled(quotas.isRefreshing)
-                    .help("Refresh Codex and Claude usage").accessibilityLabel("Refresh AI usage")
-            }
-            ForEach(quotas.providers) { provider in
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text(provider.name).font(.system(size: 14, weight: .semibold))
-                        Spacer()
-                        if let updated = provider.updatedAt {
-                            Text("Updated " + updated.formatted(date: .omitted, time: .shortened)).font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    ForEach(Array(provider.windows.enumerated()), id: \.offset) { _, window in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(window.name).font(.caption)
-                                Spacer()
-                                Text(String(format: "%.0f%% used", window.usedPercent)).font(.caption.monospacedDigit())
-                            }
-                            GaugeBar(percent: window.usedPercent, color: provider.isStale ? .secondary : window.usedPercent >= 95 ? Palette.red : window.usedPercent >= 80 ? Palette.gold : Palette.green)
-                            if let reset = window.resetAt {
-                                TimelineView(.periodic(from: .now, by: 60)) { context in
-                                    Text(resetText(reset, now: context.date)).font(.system(size: 11)).foregroundStyle(.secondary)
-                                        .help(reset.formatted(date: .complete, time: .standard))
-                                }
-                            }
-                        }.accessibilityElement(children: .combine)
-                    }
-                    if provider.status != .connected {
-                        Text((provider.isStale ? "Last known values · " : "") + provider.detail)
-                            .font(.caption).foregroundStyle(provider.status == .authenticationRequired ? Palette.gold : .secondary)
-                            .fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
-                        if provider.status == .authenticationRequired {
-                            Button("Copy sign-in command") {
-                                NSPasteboard.general.clearContents()
-                                NSPasteboard.general.setString(provider.name == "Codex" ? "codex login" : "/login", forType: .string)
-                            }.font(.caption).buttonStyle(.link)
-                        }
-                    }
-                }
-            }
-        }.padding(14).background(Palette.panel, in: RoundedRectangle(cornerRadius: 10))
-    }
-    private func resetText(_ reset: Date, now: Date) -> String {
-        let minutes = max(0, Int(reset.timeIntervalSince(now) / 60))
-        if minutes == 0 { return "Reset due · refresh for the latest quota" }
-        return "Resets in \(minutes / 60)h \(minutes % 60)m · " + reset.formatted(date: .abbreviated, time: .shortened)
     }
 }
 struct ServerCard: View {

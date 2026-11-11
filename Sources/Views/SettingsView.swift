@@ -11,6 +11,7 @@ struct SettingsView: View {
             HStack { Text("Monitor Settings").font(.title2.bold()); Spacer(); Button("Done") { NSApp.keyWindow?.close() } }
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
+                    OpenAICreditSettings()
                     GroupBox("Menu-bar dashboard") {
                         VStack(alignment: .leading, spacing: 10) {
                             HStack { Text("Height"); Spacer(); Text("\(Int(prefs.popupHeight)) pt").monospacedDigit() }

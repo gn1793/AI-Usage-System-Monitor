@@ -33,7 +33,7 @@ fi
 echo "Installed: $FINAL_APP"
 if [[ -e "$BACKUP" ]]; then echo "Previous app backup: $BACKUP"; fi
 if [[ "${NO_LAUNCH:-0}" != '1' ]]; then
-  open "$FINAL_APP"
+  open -n "$FINAL_APP"
 else
   echo 'Launch skipped. Any running previous version remains active until you quit and reopen it.'
 fi

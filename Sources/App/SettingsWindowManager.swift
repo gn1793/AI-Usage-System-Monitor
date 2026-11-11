@@ -6,9 +6,9 @@ final class SettingsWindowManager: NSObject, NSWindowDelegate {
     static let shared = SettingsWindowManager()
     private var window: NSWindow?
     private var screenObserver: NSObjectProtocol?
-    func show(prefs: Preferences, monitor: MonitorCoordinator) {
+    func show(prefs: Preferences, monitor: MonitorCoordinator, quotas: AIQuotaService) {
         if let window { constrain(); window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return }
-        let view = SettingsView().environmentObject(prefs).environmentObject(monitor)
+        let view = SettingsView().environmentObject(prefs).environmentObject(monitor).environmentObject(quotas)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 580, height: 700),
             styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
         window.title = "Monitor Settings"; window.contentView = NSHostingView(rootView: view)

@@ -18,6 +18,13 @@ final class Preferences: ObservableObject {
     @Published var theme: AppTheme { didSet { defaults.set(theme.rawValue, forKey: "appearance.theme") } }
     @Published var energySaving: Bool { didSet { defaults.set(energySaving, forKey: "monitor.energySaving") } }
     @Published var realtime: Bool { didSet { defaults.set(realtime, forKey: "monitor.realtime") } }
+    @Published var openAICredits: OpenAICreditConfiguration? {
+        didSet {
+            if let openAICredits, let data = try? JSONEncoder().encode(openAICredits) {
+                defaults.set(data, forKey: "openai.credits.v1")
+            } else { defaults.set(Data("null".utf8), forKey: "openai.credits.v1") }
+        }
+    }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -30,6 +37,9 @@ final class Preferences: ObservableObject {
         theme = AppTheme(rawValue: defaults.string(forKey: "appearance.theme") ?? "system") ?? .system
         energySaving = defaults.bool(forKey: "monitor.energySaving")
         realtime = defaults.bool(forKey: "monitor.realtime")
+        if let data = defaults.data(forKey: "openai.credits.v1") {
+            openAICredits = try? JSONDecoder().decode(OpenAICreditConfiguration.self, from: data)
+        } else { openAICredits = .braveSession }
         if let data = defaults.data(forKey: "hosts.v1"), let decoded = try? JSONDecoder().decode([HostRecord].self, from: data) {
             var seen = Set<String>()
             hosts = decoded.filter { Self.validationError($0.alias) == nil && seen.insert($0.alias).inserted }

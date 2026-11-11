@@ -18,6 +18,9 @@ DerivedData/
 xcuserdata/
 *.xcuserstate
 
+# Local coding-agent workspace data
+.serena/
+
 # Python caches and local virtual environments
 __pycache__/
 *.py[cod]
@@ -31,7 +34,9 @@ venv/
 !.env.example
 .ssh/
 .codex/
+.codex-api/
 .claude/
+.aws/
 auth.json
 .credentials.json
 *.pem

@@ -44,11 +44,13 @@ cat > "$CONTENTS/Info.plist" <<'PLIST'
   <key>LSMinimumSystemVersion</key><string>26.0</string>
   <key>LSUIElement</key><true/>
   <key>NSHighResolutionCapable</key><true/>
+  <key>NSAppleEventsUsageDescription</key><string>Read your OpenAI Credit Grants balance from your signed-in Brave Billing tab.</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
 </dict></plist>
 PLIST
 
 cp "$ROOT/collector/monitor.py" "$RESOURCES/monitor.py"
+cp "$ROOT/Resources/ReadOpenAICreditGrants.js" "$RESOURCES/ReadOpenAICreditGrants.js"
 cp "$ROOT/Resources/MenuCat.png" "$RESOURCES/MenuCat.png"
 cp "$ROOT/Resources/AppIcon.png" "$RESOURCES/AppIcon.png"
 

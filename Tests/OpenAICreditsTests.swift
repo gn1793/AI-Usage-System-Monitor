@@ -133,17 +133,26 @@ private actor SuspendedCreditFetcher: OpenAICreditFetching {
         let laterOnExpiryDay = browserState.snapshot!.configuration.expiresAt.addingTimeInterval(23 * 3600)
         try expect(browserState.snapshot?.remaining(at: laterOnExpiryDay) == 75 && browserState.snapshot?.isExpired(at: laterOnExpiryDay) == false,
             "A date-only expiry must not override the website's Available state")
+        let renewedData = Data(#"{"currency":"USD","rows":[["Jan 15, 2025","Available","$60.00 / $80.00","Feb 15, 2025"],["Dec 15, 2024","Inactive","$0.00 / $25.00","-"]]}"#.utf8)
+        let renewed = await BraveCreditGrantClient(reader: BrowserReader(data: renewedData)).fetch(now: testNow)
+        try expect(renewed.status == .connected && renewed.snapshot?.configuration.total == 80 && renewed.snapshot?.remaining(at: testNow) == 60,
+            "An old Inactive grant must not prevent the new Available grant from refreshing")
+        try expect(renewed.snapshot?.grants.count == 1 && renewed.snapshot?.grants.first?.state == "Available",
+            "Only Available grants must be retained for display")
+        let ignored = try BraveGrantParser.parse(Data(#"{"currency":"USD","rows":[["Jan 15, 2025","Available","$20.00 / $30.00","Feb 15, 2025"],["not a date","Inactive","not an amount","not an expiry"],["not a date","Unknown state","not an amount","not an expiry"]]}"#.utf8), now: testNow)
+        try expect(ignored.status == .connected && ignored.snapshot?.configuration.total == 30 && ignored.snapshot?.remaining(at: testNow) == 20 && ignored.snapshot?.grants.count == 1,
+            "Non-Available rows must be excluded before parsing their dates and amounts")
         let multiple = try BraveGrantParser.parse(Data(#"{"currency":"USD","rows":[["Oct 29, 2026","Available","$75.00 / $100.00","Nov 12, 2026"],["Oct 30, 2026","Available","$10.00 / $50.00","Nov 20, 2026"],["Oct 1, 2026","Expired","$500.00 / $1,000.00","Nov 1, 2026"]]}"#.utf8), now: testNow)
         try expect(multiple.snapshot?.configuration.total == 150 && multiple.snapshot?.remaining(at: testNow) == 85 && multiple.snapshot?.used == 65,
             "Only available grants must be included in the summary")
-        try expect(multiple.snapshot?.grants.count == 3 && multiple.snapshot?.displayExpiry == browserState.snapshot?.displayExpiry,
-            "All grants must be retained for details and the next available expiry must be shown")
+        try expect(multiple.snapshot?.grants.count == 2 && multiple.snapshot?.displayExpiry == browserState.snapshot?.displayExpiry,
+            "Only Available grants must be retained for details and the next available expiry must be shown")
         let none = try BraveGrantParser.parse(Data(#"{"currency":"USD","rows":[]}"#.utf8), now: testNow)
         try expect(none.snapshot?.configuration.total == 0 && none.snapshot?.remainingPercent(at: testNow) == 0 && none.snapshot?.consumedPercent == 0,
             "An empty grant table must produce a finite zero balance")
         let expiredBrowser = try BraveGrantParser.parse(Data(#"{"currency":"USD","rows":[["Oct 1, 2026","Expired","$30.00 / $100.00","Nov 1, 2026"]]}"#.utf8), now: testNow)
-        try expect(expiredBrowser.snapshot?.remaining(at: testNow) == 0 && expiredBrowser.snapshot?.isExpired(at: testNow) == true,
-            "Expired grants must have no available balance")
+        try expect(expiredBrowser.status == .connected && expiredBrowser.snapshot?.configuration.total == 0 && expiredBrowser.snapshot?.remaining(at: testNow) == 0 && expiredBrowser.snapshot?.grants.isEmpty == true && expiredBrowser.snapshot?.displayExpiry == nil,
+            "A table without Available grants must show zero balance without inactive grant details")
         let never = try BraveGrantParser.parse(Data(#"{"currency":"USD","rows":[["Oct 1, 2026","Available","$3.00 / $5.00","Never"]]}"#.utf8), now: testNow)
         try expect(never.snapshot?.displayExpiry == nil && never.snapshot?.remaining(at: testNow) == 3, "Grants without an expiry must be supported")
         for invalid in [
@@ -152,7 +161,7 @@ private actor SuspendedCreditFetcher: OpenAICreditFetching {
             #"{"currency":"USD","rows":[["Oct 1, 2026","Available","$-1 / $5","Nov 12, 2026"]]}"#,
             #"{"currency":"USD","rows":[["Oct 1, 2026","Available","$NaN / $5","Nov 12, 2026"]]}"#,
             #"{"currency":"USD","rows":[["Oct 1, 2026","Available","$1,00 / $500","Nov 12, 2026"]]}"#,
-            #"{"currency":"USD","rows":[["Oct 1, 2026","Unknown state","$3 / $5","Nov 12, 2026"]]}"#,
+            #"{"currency":"USD","rows":[["Oct 1, 2026","","$3 / $5","Nov 12, 2026"]]}"#,
             #"{"currency":"USD","rows":[["unexpected"]]}"#
         ] {
             do { _ = try BraveGrantParser.parse(Data(invalid.utf8), now: testNow); throw TestFailure(message: "Malformed browser grants must fail") }

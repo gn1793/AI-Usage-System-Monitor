@@ -67,8 +67,11 @@ enum BraveGrantParser {
         formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.dateFormat = "MMM d, yyyy"; formatter.isLenient = false
         var grants: [OpenAICreditGrant] = []
         for row in rows {
-            guard row.count == 4, let received = formatter.date(from: row[0]), !row[1].isEmpty else { throw BraveGrantError.malformed }
-            guard ["available", "expired", "exhausted", "consumed", "used", "fully used", "canceled", "cancelled", "revoked", "pending"].contains(row[1].lowercased()) else { throw BraveGrantError.malformed }
+            guard row.count == 4, !row[1].isEmpty else { throw BraveGrantError.malformed }
+            // Historical grants can have other states and different field formats.
+            // Only Available rows contribute to the balance or grant details.
+            guard row[1].lowercased() == "available" else { continue }
+            guard let received = formatter.date(from: row[0]) else { throw BraveGrantError.malformed }
             let amounts = row[2].components(separatedBy: "/")
             guard amounts.count == 2, let remaining = amount(amounts[0]), let total = amount(amounts[1]),
                   total > 0, remaining >= 0, remaining <= total else { throw BraveGrantError.malformed }
